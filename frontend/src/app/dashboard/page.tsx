@@ -23,7 +23,7 @@ const DashboardPage = () => {
     const [filter, setFilter] = useState<"all" | "active" | "completed">("all");
     const [searchQuery, setSearchQuery] = useState("");
 
-    const API_BASE_URL = "http://127.0.0.1:8000/api";
+    const API_BASE_URL = "https://hackathone-2-todo.vercel.app/api";
 
     useEffect(() => {
         if (!isPending && !sessionData) {
