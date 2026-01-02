@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import SQLModel, Session, create_engine, select
-from models import Task
+from .models import Task
 import os
 from dotenv import load_dotenv
 from typing import List, Optional
