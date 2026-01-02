@@ -1,9 +1,11 @@
 {
-  "rewriteConfigs": true,
+  "version": 2,
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "main.py" }
+    { "source": "/api/(.*)", "destination": "backend/main.py" }
   ],
   "functions": {
-    "main.py": { "runtime": "vercel-python@0.1.0" }
+    "backend/main.py": {
+      "runtime": "vercel-python@0.1.0"
+    }
   }
 }
