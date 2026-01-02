@@ -12,7 +12,7 @@ load_dotenv()
 # Configuration
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-# ✅ FIX: Neon.tech URLs postgres:// ko postgresql:// mein convert karna zaroori hai
+# ✅ Neon.tech URL fix
 if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
@@ -24,11 +24,12 @@ engine = create_engine(
     pool_pre_ping=True
 )
 
-# ✅ FIX: Vercel ke liye docs_url aur openapi_url set karna taake 404 na aaye
+# ✅ Vercel friendly config
+# Hum routes mein /api nahi likh rahe kyunki vercel.json handle karega
 app = FastAPI(
     title="Hackathon Todo API",
-    docs_url="/api/docs",      # Ab ye /api/docs par khulega
-    openapi_url="/api/openapi.json"
+    docs_url="/docs", 
+    openapi_url="/openapi.json"
 )
 
 # CORS SETUP
@@ -44,7 +45,7 @@ class TaskUpdate(BaseModel):
     title: Optional[str] = None
     completed: Optional[bool] = None
 
-# ✅ FIXED AUTH MIDDLEWARE
+# ✅ AUTH MIDDLEWARE
 async def get_current_user(authorization: str = Header(None)):
     if not authorization:
         raise HTTPException(status_code=401, detail="Missing Authorization Header")
@@ -65,16 +66,16 @@ async def get_current_user(authorization: str = Header(None)):
 def on_startup():
     SQLModel.metadata.create_all(engine)
 
-# --- ROUTES ---
+# --- ROUTES (Removed /api from here) ---
 
-@app.get("/api/tasks", response_model=List[Task])
+@app.get("/tasks", response_model=List[Task])
 def get_tasks(user_id: str = Depends(get_current_user)):
     with Session(engine) as session:
         statement = select(Task).where(Task.user_id == user_id)
         tasks = session.exec(statement).all()
         return tasks
 
-@app.post("/api/tasks", response_model=Task)
+@app.post("/tasks", response_model=Task)
 def create_task(task_input: Task, user_id: str = Depends(get_current_user)):
     task_input.user_id = user_id
     with Session(engine) as session:
@@ -83,7 +84,7 @@ def create_task(task_input: Task, user_id: str = Depends(get_current_user)):
         session.refresh(task_input)
         return task_input
 
-@app.delete("/api/tasks/{task_id}")
+@app.delete("/tasks/{task_id}")
 def delete_task(task_id: int, user_id: str = Depends(get_current_user)):
     with Session(engine) as session:
         db_task = session.get(Task, task_id)
@@ -94,7 +95,7 @@ def delete_task(task_id: int, user_id: str = Depends(get_current_user)):
         session.commit()
         return {"message": "Task deleted successfully"}
 
-@app.patch("/api/tasks/{task_id}")
+@app.patch("/tasks/{task_id}")
 def update_task(task_id: int, task_data: TaskUpdate, user_id: str = Depends(get_current_user)):
     with Session(engine) as session:
         db_task = session.get(Task, task_id)
@@ -111,7 +112,7 @@ def update_task(task_id: int, task_data: TaskUpdate, user_id: str = Depends(get_
         session.refresh(db_task)
         return db_task
 
-@app.patch("/api/tasks/{task_id}/complete")
+@app.patch("/tasks/{task_id}/complete")
 def toggle_task(task_id: int, user_id: str = Depends(get_current_user)):
     with Session(engine) as session:
         db_task = session.get(Task, task_id)
@@ -124,6 +125,6 @@ def toggle_task(task_id: int, user_id: str = Depends(get_current_user)):
         session.refresh(db_task)
         return db_task
 
-@app.api_route("/api/auth/{path:path}", methods=["GET", "POST"])
+@app.api_route("/auth/{path:path}", methods=["GET", "POST"])
 async def auth_handler(path: str):
     return {"message": "Auth route reached"}
