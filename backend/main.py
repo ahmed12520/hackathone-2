@@ -28,6 +28,7 @@ engine = create_engine(
 # Hum routes mein /api nahi likh rahe kyunki vercel.json handle karega
 app = FastAPI(
     title="Hackathon Todo API",
+    root_path="/api",    # 👈 YE SAB SE ZAROORI HAI
     docs_url="/docs", 
     openapi_url="/openapi.json"
 )
