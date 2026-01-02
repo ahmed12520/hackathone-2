@@ -11,14 +11,25 @@ load_dotenv()
 
 # Configuration
 DATABASE_URL = os.getenv("DATABASE_URL")
+
+# ✅ FIX: Neon.tech URLs postgres:// ko postgresql:// mein convert karna zaroori hai
+if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
 engine = create_engine(
-    DATABASE_URL.replace("postgresql://", "postgresql+psycopg2://"),
+    DATABASE_URL,
     pool_size=5,
     max_overflow=10,
     pool_recycle=300,
     pool_pre_ping=True
 )
-app = FastAPI(title="Hackathon Todo API")
+
+# ✅ FIX: Vercel ke liye docs_url aur openapi_url set karna taake 404 na aaye
+app = FastAPI(
+    title="Hackathon Todo API",
+    docs_url="/api/docs",      # Ab ye /api/docs par khulega
+    openapi_url="/api/openapi.json"
+)
 
 # CORS SETUP
 app.add_middleware(
@@ -44,9 +55,6 @@ async def get_current_user(authorization: str = Header(None)):
             raise HTTPException(status_code=401, detail="Invalid token format")
         
         token = parts[1]
-        
-        # Better-Auth ke opaque tokens unique hote hain. 
-        # Hum isi token ko as a User Identity use karenge.
         return str(token) 
         
     except Exception as e:
@@ -62,14 +70,12 @@ def on_startup():
 @app.get("/api/tasks", response_model=List[Task])
 def get_tasks(user_id: str = Depends(get_current_user)):
     with Session(engine) as session:
-        # ✅ Filter: Ab sirf login user ke tasks milenge
         statement = select(Task).where(Task.user_id == user_id)
         tasks = session.exec(statement).all()
         return tasks
 
 @app.post("/api/tasks", response_model=Task)
 def create_task(task_input: Task, user_id: str = Depends(get_current_user)):
-    # ✅ Secure: Login user ki ID/Token attach ho rahi hai
     task_input.user_id = user_id
     with Session(engine) as session:
         session.add(task_input)
@@ -81,7 +87,6 @@ def create_task(task_input: Task, user_id: str = Depends(get_current_user)):
 def delete_task(task_id: int, user_id: str = Depends(get_current_user)):
     with Session(engine) as session:
         db_task = session.get(Task, task_id)
-        # ✅ Security Check: Task exist kare aur isi user ka ho
         if not db_task or db_task.user_id != user_id:
             raise HTTPException(status_code=404, detail="Task not found or unauthorized")
         
